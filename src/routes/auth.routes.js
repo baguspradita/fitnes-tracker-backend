@@ -19,12 +19,14 @@ router.post("/register", validate(registerSchema), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({
       data: { name, email, password: hashedPassword },
-      select: { id: true, name: true, email: true, createdAt: true },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
     });
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.status(201).json({ user, token });
   } catch (err) {
@@ -47,12 +49,18 @@ router.post("/login", validate(loginSchema), async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    if (user.isActive === false) {
+      return res.status(403).json({ error: "Akun kamu telah dinonaktifkan" });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role || "USER" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.json({
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || "USER" },
       token,
     });
   } catch (err) {
@@ -65,7 +73,7 @@ router.get("/me", require("../middleware/auth"), async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, name: true, email: true, image: true, createdAt: true },
+      select: { id: true, name: true, email: true, image: true, role: true, createdAt: true },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
     res.json(user);

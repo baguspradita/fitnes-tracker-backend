@@ -9,7 +9,9 @@
     "seed": "node prisma/seed.js",
     "migrate": "npx prisma migrate dev",
     "studio": "npx prisma studio",
-    "dummy": "node prisma/dummy-user.js"
+    "dummy": "node prisma/dummy-user.js",
+    "make-admin": "node prisma/make-admin.js"
+    
   },
   "keywords": [],
   "author": "",
